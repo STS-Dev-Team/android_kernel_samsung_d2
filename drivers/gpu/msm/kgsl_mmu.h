@@ -29,6 +29,7 @@
    as an identifier */
 
 #define KGSL_MMU_GLOBAL_PT 0
+#define KGSL_MMU_PRIV_BANK_TABLE_NAME 0xFFFFFFFF
 
 struct kgsl_device;
 
@@ -149,7 +150,8 @@ struct kgsl_mmu_pt_ops {
 			unsigned int protflags,
 			unsigned int *tlb_flags);
 	int (*mmu_unmap) (void *mmu_pt,
-			struct kgsl_memdesc *memdesc);
+			struct kgsl_memdesc *memdesc,
+			unsigned int *tlb_flags);
 	void *(*mmu_create_pagetable) (void);
 	void (*mmu_destroy_pagetable) (void *pt);
 	int (*mmu_pt_equal) (struct kgsl_pagetable *pt,
@@ -166,6 +168,8 @@ struct kgsl_mmu {
 	struct kgsl_memdesc    setstate_memory;
 	/* current page table object being used by device mmu */
 	struct kgsl_pagetable  *defaultpagetable;
+	/* pagetable object used for priv bank of IOMMU */
+	struct kgsl_pagetable  *priv_bank_table;
 	struct kgsl_pagetable  *hwpagetable;
 	const struct kgsl_mmu_ops *mmu_ops;
 	void *priv;

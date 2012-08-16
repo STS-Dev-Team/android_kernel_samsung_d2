@@ -143,9 +143,6 @@ void mdp4_dtv_pipe_queue(int cndx, struct mdp4_overlay_pipe *pipe)
 		return;
 	}
 
-	/* start timing generator & mmu if they are not started yet */
-	mdp4_overlay_dtv_start();
-
 	vctrl = &vsync_ctrl_db[cndx];
 
 	if (atomic_read(&vctrl->suspend) > 0)
@@ -211,6 +208,9 @@ int mdp4_dtv_pipe_commit(void)
 		}
 	}
 	mdp4_mixer_stage_commit(mixer);
+
+	 /* start timing generator & mmu if they are not started yet */
+	mdp4_overlay_dtv_start();
 
 	pipe = vctrl->base_pipe;
 	spin_lock_irqsave(&vctrl->spin_lock, flags);
@@ -673,8 +673,7 @@ static void mdp4_dtv_blt_dmae_update(struct mdp4_overlay_pipe *pipe)
 
 void mdp4_overlay_dtv_set_perf(struct msm_fb_data_type *mfd)
 {
-	/* change mdp clk while mdp is idle` */
-	mdp4_set_perf_level();
+
 }
 
 static void mdp4_overlay_dtv_alloc_pipe(struct msm_fb_data_type *mfd,
@@ -727,11 +726,15 @@ static void mdp4_overlay_dtv_alloc_pipe(struct msm_fb_data_type *mfd,
 	pipe->src_width = fbi->var.xres;
 	pipe->src_h = fbi->var.yres;
 	pipe->src_w = fbi->var.xres;
+	pipe->dst_h = fbi->var.yres;
+	pipe->dst_w = fbi->var.xres;
 	pipe->src_y = 0;
 	pipe->src_x = 0;
 	pipe->dst_h = fbi->var.yres;
 	pipe->dst_w = fbi->var.xres;
 	pipe->srcp0_ystride = fbi->fix.line_length;
+
+	mdp4_overlay_mdp_pipe_req(pipe, mfd);
 
 	ret = mdp4_overlay_format2pipe(pipe);
 	if (ret < 0)
@@ -747,7 +750,7 @@ static void mdp4_overlay_dtv_alloc_pipe(struct msm_fb_data_type *mfd,
 
 	mdp4_overlay_reg_flush(pipe, 1);
 	mdp4_mixer_stage_up(pipe);
-
+	mdp4_mixer_stage_commit(pipe->mixer_num);
 	vctrl->base_pipe = pipe; /* keep it */
 }
 
@@ -864,6 +867,7 @@ void mdp4_dmae_done_dtv(void)
 	} else  {
 		mdp4_overlay_dma_commit(MDP4_MIXER1);
 	}
+
 	vsync_irq_disable(INTR_DMA_E_DONE, MDP_DMA_E_TERM);
 	spin_unlock(&vctrl->spin_lock);
 }
@@ -920,6 +924,7 @@ void mdp4_dtv_set_black_screen(void)
 	MDP_OUTP(rgb_base + 0x0050, temp_src_format | BIT(22));
 	mdp4_overlay_reg_flush(vctrl->base_pipe, 1);
 	mdp4_mixer_stage_up(vctrl->base_pipe);
+	mdp4_mixer_stage_commit(vctrl->base_pipe->mixer_num);
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
 }
 
