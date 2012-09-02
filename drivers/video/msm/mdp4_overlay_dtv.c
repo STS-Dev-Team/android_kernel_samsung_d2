@@ -233,7 +233,6 @@ int mdp4_dtv_pipe_commit(void)
 		/* schedule second phase update  at dmap */
 		INIT_COMPLETION(vctrl->dmae_comp);
 		vsync_irq_enable(INTR_DMA_E_DONE, MDP_DMA_E_TERM);
-		mdp4_dtv_wait4dmae(0);
 	}
 	spin_unlock_irqrestore(&vctrl->spin_lock, flags);
 	mdp4_stat.overlay_commit[pipe->mixer_num]++;
@@ -241,14 +240,10 @@ int mdp4_dtv_pipe_commit(void)
 	return cnt;
 }
 
-void mdp4_dtv_vsync_ctrl(int cndx, int enable)
+void mdp4_dtv_vsync_ctrl(struct fb_info *info, int enable)
 {
 	struct vsycn_ctrl *vctrl;
-
-	if (cndx >= MAX_CONTROLLER) {
-		pr_err("%s: out or range: cndx=%d\n", __func__, cndx);
-		return;
-	}
+	int cndx = 0;
 
 	vctrl = &vsync_ctrl_db[cndx];
 
